@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pool Water Loss — Evaporation Estimate</title>
+<meta name="description" content="See how much water your pool should be losing to evaporation today, based on your local weather.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Water Loss">
+<meta name="theme-color" content="#172d5c">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%23172d5c'/%3E%3Cpath d='M0 108c30-14 45 6 60 6s30-20 60-6 30 6 60-4v76H0z' fill='%23055c9d'/%3E%3Cpath d='M0 92c30-14 45 6 60 6s30-20 60-6 30 6 60-4' stroke='%2353c7d6' stroke-width='7' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Marcellus&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ---- BPS brand palette ---- */
+  --water-deep:#172d5c;   /* dark blue   — headers, dark panels           */
+  --tile:#055c9d;         /* blue        — labels, links, primary action  */
+  --mid:#4488b9;          /* matte blue  — secondary, muted rules         */
+  --tile-lt:#53c7d6;      /* aqua        — accent, highlights, gauge      */
+  --plaster:#f4fbff;      /* light blue  — page ground                    */
+  --plaster-2:#d9e9f5;    /* pastel blue — muted fills                    */
+  --cream:#f6f6f6;        /* cream       — alternate surface              */
+  --coping:#b9c9da;       /* derived     — concrete in illustrations      */
+
+  /* ---- status colours ----
+     The brand palette is entirely blues, so it cannot carry the difference
+     between "no leak", "possibly", and "confirmed leak" — those hues sit
+     1.0-3.5:1 against each other and would be indistinguishable, including
+     for anyone colour-blind. These three are the minimum needed to keep the
+     diagnosis readable, and are tuned to sit beside the blues rather than
+     fight them. Everything decorative uses brand colours only. */
+  --alk:#1E7A6E;          /* ok    — 4.9:1 on light ground */
+  --oto:#B0740A;          /* warn  — 3.8:1, used on tinted panels + borders */
+  --phenol:#C0394B;       /* alert — 5.1:1 on light ground */
+
+  --ink:#172d5c;--ink-2:#3f5878;--ink-3:#7b8ea8;--line:#c5dbec;
+
+  /* Marcellus ships ONE weight (400). Asking for 700/800 makes the browser
+     synthesize a smeared fake bold, so display hierarchy here comes from
+     size, tracking and colour instead of weight. */
+  --f-disp:'Marcellus',Georgia,serif;
+  --f-body:'Libre Baskerville',Georgia,serif;
+  --f-data:'IBM Plex Mono',ui-monospace,monospace;
+  --r:4px;--pad:clamp(16px,4vw,28px);--tap:48px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--plaster);color:var(--ink);font-family:var(--f-body);font-size:16.5px;
+  line-height:1.5;-webkit-text-size-adjust:100%;padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+.wrap{max-width:680px;margin:0 auto}
+.hdr{background:var(--water-deep);color:var(--plaster);
+  padding:calc(var(--pad) + env(safe-area-inset-top)) var(--pad) var(--pad);position:relative;overflow:hidden}
+.hdr::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:linear-gradient(90deg,var(--tile),var(--tile-lt) 50%,var(--tile))}
+.eyebrow{font-family:var(--f-data);font-size:12px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--tile-lt);margin:0 0 12px}
+.hdr h1{font-family:var(--f-disp);font-weight:400;font-size:clamp(30px,7.6vw,44px);
+  line-height:1.14;letter-spacing:.005em;margin:0 0 10px}
+.hdr h1 em{font-style:normal;color:var(--tile-lt)}
+.sub{margin:0;color:#cfe4f5;font-size:15.5px;max-width:46ch}
+section{padding:var(--pad);border-bottom:1px solid var(--line)}
+.slabel{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-family:var(--f-data);
+  font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px}
+.slabel b{color:var(--tile);font-weight:600}
+.ziprow{display:flex;gap:8px}
+.ziprow input{flex:1;min-height:var(--tap);border:1.5px solid var(--line);border-radius:var(--r);
+  background:#fff;padding:0 14px;font-family:var(--f-data);font-size:19px;font-weight:600;letter-spacing:.08em}
+input:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--oto);outline-offset:1px}
+.go{min-height:var(--tap);padding:0 20px;border:0;border-radius:var(--r);background:var(--water-deep);
+  color:#fff;cursor:pointer;font-family:var(--f-body);font-size:14.5px;font-weight:700;
+  letter-spacing:.01em;white-space:nowrap}
+.go:disabled{opacity:.45;cursor:default}
+.go.ghost{background:transparent;color:var(--water-deep);border:1.5px solid var(--water-deep)}
+.go.alert{background:var(--phenol)}
+.go.full{width:100%}
+.note{font-size:14px;color:var(--ink-2);margin:10px 0 0}
+.err{margin:12px 0 0;padding:11px 13px;border-left:3px solid var(--phenol);background:#fbecee;
+  font-size:14.5px;color:#8d2b3a}
+.field{margin-bottom:20px}
+.field:last-child{margin-bottom:0}
+.field>label{display:block;font-size:15px;font-weight:600;margin-bottom:3px}
+.hint{font-size:13.5px;color:var(--ink-2);margin:0 0 9px;line-height:1.42}
+.hint b{font-weight:700;color:var(--ink);letter-spacing:.04em}
+.stepper{display:flex;border:1.5px solid var(--line);border-radius:var(--r);background:#fff;max-width:230px}
+.stepper button{width:var(--tap);border:0;background:transparent;cursor:pointer;font-family:var(--f-data);
+  font-size:22px;font-weight:500;color:var(--tile)}
+.stepper input{flex:1;min-width:0;min-height:var(--tap);border:0;text-align:center;font-family:var(--f-data);
+  font-size:21px;font-weight:600;background:transparent}
+.txt,select,textarea{width:100%;min-height:var(--tap);border:1.5px solid var(--line);border-radius:var(--r);
+  background:#fff;padding:10px 13px;font-family:var(--f-body);font-size:16px;color:var(--ink)}
+textarea{min-height:80px;resize:vertical;line-height:1.45}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff}
+.seg button{flex:1;min-height:var(--tap);border:0;border-right:1px solid var(--line);background:transparent;
+  cursor:pointer;font-family:var(--f-body);font-size:14.5px;font-weight:600;color:var(--ink-2);padding:6px 4px;line-height:1.2}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--water-deep);color:#fff}
+.seg button span{display:block;font-family:var(--f-data);font-size:12px;font-weight:500;letter-spacing:.04em;
+  opacity:.72;margin-top:2px}
+.place{font-family:var(--f-disp);font-weight:400;font-size:19px;margin:0 0 2px}
+.stamp{font-family:var(--f-data);font-size:13px;color:var(--ink-3);margin:0 0 16px}
+.result{background:var(--water-deep);color:var(--plaster);border-bottom:0}
+.result .slabel{color:#9fc4e0}
+.result .slabel b{color:var(--tile-lt)}
+.gaugebox{display:flex;gap:var(--pad);align-items:center;flex-wrap:wrap}
+.gauge{flex:0 0 auto;width:150px}
+.readout{flex:1;min-width:170px}
+.big{font-family:var(--f-disp);font-weight:400;font-size:clamp(44px,14vw,72px);line-height:.88;
+  letter-spacing:-.045em;margin:0;color:#fff;font-variant-numeric:tabular-nums}
+.big i{font-style:normal;font-size:.4em;color:var(--tile-lt);margin-left:2px}
+.perday{font-family:var(--f-data);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#9fc4e0;margin:8px 0 0}
+.gal{font-family:var(--f-data);font-size:16.5px;font-weight:600;color:#fff;margin:14px 0 0}
+.gal span{color:#9fc4e0;font-weight:500;font-size:14px}
+.rightnow{font-family:var(--f-data);font-size:13px;color:#9fc4e0;margin:6px 0 0}
+.bar{height:7px;background:var(--plaster-2);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--tile);border-radius:99px}
+.bar.neg i{background:var(--tile-lt)}
+.empty{text-align:center;padding:34px 16px;border:1px dashed var(--line);background:#fff}
+.empty p{font-size:15px;color:var(--ink-2);margin:0}
+.feedback{padding:var(--pad);border-top:1px solid var(--line);background:var(--cream);text-align:center}
+.fbq{font-family:var(--f-disp);font-weight:400;font-size:19px;letter-spacing:.005em;margin:0 0 14px;color:var(--ink)}
+.fbrow{display:flex;gap:10px;justify-content:center;margin:0 0 18px}
+.fbbtn{min-width:104px;min-height:var(--tap);border:1.5px solid var(--tile);border-radius:var(--r);
+  background:#fff;color:var(--tile);cursor:pointer;font-family:var(--f-body);font-size:14px;font-weight:700}
+.fbbtn[aria-pressed="true"]{background:var(--tile);color:#fff}
+.fbthanks{font-size:14px;color:var(--ink-2);margin:0 0 18px;line-height:1.5}
+.sharebtn{width:100%;min-height:var(--tap);border:1.5px solid var(--water-deep);border-radius:var(--r);
+  background:transparent;color:var(--water-deep);cursor:pointer;font-family:var(--f-body);
+  font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.sharebtn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8}
+.leadtag.call,.leadtag.text,.leadtag.email{background:var(--tile);color:#fff}
+.cta{background:var(--plaster-2);border-bottom:0}
+.cta label{display:block;font-size:13.5px;font-weight:700;margin-bottom:4px;color:var(--ink)}
+/* Set in Libre Baskerville rather than Marcellus: Marcellus ships a single
+   weight, so font-weight:700 on it yields a synthesized fake bold. This needs
+   to be genuinely bold, so it uses the body face, which has a real 700. */
+.cta h2{font-family:var(--f-body);font-weight:700;font-size:17.5px;line-height:1.45;
+  letter-spacing:0;margin:0 0 16px}
+.cta p{font-size:15px;color:var(--ink-2);margin:0 0 16px}
+.btn{flex:1;min-height:var(--tap);display:flex;align-items:center;justify-content:center;border-radius:var(--r);
+  text-decoration:none;font-family:var(--f-body);font-size:14.5px;font-weight:700;
+  letter-spacing:.01em;cursor:pointer;border:0}
+.btn-1{background:var(--phenol);color:#fff}
+.foot{padding:var(--pad);font-size:13px;color:var(--ink-3);line-height:1.55}
+.foot strong{color:var(--ink-2);font-weight:600}
+.back{background:transparent;border:0;font-family:var(--f-data);font-size:13px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--tile);cursor:pointer;padding:0;margin:0 0 12px}
+[hidden]{display:none!important}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+*{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+.urgent{margin:10px 0 0;padding:10px 12px;background:rgba(232,178,43,.14);border-left:3px solid var(--oto);
+  font-size:13.5px;color:#f4fbff;line-height:1.4}
+.leadnote{font-size:13px;color:var(--ink-3);margin:10px 0 0;line-height:1.4}
+.fgroup .txt,.fgroup select{min-height:44px;font-size:15.5px;margin-bottom:12px}
+.fgroup .row2 .txt,.fgroup .row2 select,.fgroup .row3 .txt,.fgroup .row3 select{margin-bottom:0}
+.featrow select,.featrow .txt{margin-bottom:0;min-height:44px}
+.conf.high{background:var(--alk);color:#fff}
+/* standalone page: no tab bar, so reclaim the space it reserved */
+body{padding-bottom:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hdr">
+  <p class="eyebrow" id="brandline">Benchmark Pools &amp; Spas</p>
+  <h1>How much water<br>should your pool <em>lose?</em></h1>
+  <p class="sub">Zip code and a few basics — see today's evaporation estimate in seconds.</p>
+</header>
+
+<section id="e-inputs">
+    <div class="field">
+      <label for="e-zip">Zip code</label>
+      <div class="ziprow">
+        <input id="e-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5"
+               placeholder="75201" aria-label="Zip code">
+        <button class="go" id="e-go">Get my estimate</button>
+      </div>
+      <p class="hint" style="margin:8px 0 0"><b>REQUIRED.</b> Your local air temperature, dew point and wind speed are what
+        the estimate is calculated from, so the result stays blank until you enter one.</p>
+      <p class="stamp" id="e-place" style="margin:8px 0 0"></p>
+      <div class="err" id="e-err" hidden></div>
+    </div>
+    <div class="field">
+      <label for="e-area">Pool surface area (sq ft)</label>
+      <div class="stepper">
+        <button type="button" data-estep="e-area,-25" aria-label="Decrease">&minus;</button>
+        <input id="e-area" type="number" inputmode="numeric" value="450" min="50" max="20000" step="25">
+        <button type="button" data-estep="e-area,25" aria-label="Increase">+</button>
+      </div>
+      <p class="hint" style="margin:6px 0 0">A 16&times;32 rectangle is about 450&ndash;500.</p>
+    </div>
+    <div class="field">
+      <label>Wind shelter</label>
+      <div class="seg" id="e-shelter" role="group" aria-label="Wind shelter">
+        <button type="button" data-v="0.18">Minimal<span>Open lot</span></button>
+        <button type="button" data-v="0.12" aria-pressed="true">Typical<span>Privacy fence</span></button>
+        <button type="button" data-v="0.05">Protected<span>Screen, courtyard</span></button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Water movement</label>
+      <div class="seg" id="e-movement" role="group" aria-label="Water movement">
+        <button type="button" data-v="0.74">Still<span>Pump off</span></button>
+        <button type="button" data-v="0.85" aria-pressed="true">Normal<span>Circulation</span></button>
+        <button type="button" data-v="1.30">Excessive<span>Falls, jets</span></button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="e-wt">Water temperature (&deg;F)</label>
+      <div class="stepper">
+        <button type="button" data-estep="e-wt,-1" aria-label="Decrease">&minus;</button>
+        <input id="e-wt" type="number" inputmode="decimal" value="84" min="40" max="110" step="1">
+        <button type="button" data-estep="e-wt,1" aria-label="Increase">+</button>
+      </div>
+      <p class="hint" style="margin:6px 0 0">Most pools run between 78&deg;F and 88&deg;F in season. Warmer water evaporates faster.</p>
+    </div>
+  </section>
+
+  <section class="result" id="e-result">
+    <p class="slabel">Expected loss <b>From evaporation alone</b></p>
+    <div class="gaugebox">
+      <div class="gauge">
+        <svg id="e-svg" viewBox="0 0 150 220" role="img" aria-labelledby="e-gt"><title id="e-gt"></title></svg>
+      </div>
+      <div class="readout">
+        <p class="big"><span id="e-inches">&mdash;</span><i>in</i></p>
+        <p class="perday" id="e-perday">per day</p>
+        <p class="gal" id="e-gallons"></p>
+        <p class="rightnow" id="e-context">Enter your zip code above and tap <b>Get my estimate</b>. The other
+          fields are already set to typical values &mdash; adjust them to match your pool if you like.</p>
+        <p class="urgent" id="e-urgent" hidden></p>
+      </div>
+    </div>
+    <button class="back" id="e-costtoggle" style="margin-top:16px;color:#9fc4e0" hidden>See this in dollars</button>
+    <div id="e-costwrap" hidden style="margin-top:12px">
+      <div class="field">
+        <label for="e-rate">What do you pay per 1,000 gallons of water?</label>
+        <p class="hint">Water rates vary enormously by city and usage tier — commonly $3&ndash;$12 per 1,000 gallons in the
+          US, but only your bill knows yours. Use the water line only, not sewer &mdash; evaporated water never reaches
+          the sewer.</p>
+        <input class="txt" id="e-rate" type="number" inputmode="decimal" step="0.25" placeholder="e.g. 6.50">
+      </div>
+      <p class="gal" id="e-cost" style="color:var(--water-deep)"></p>
+    </div>
+  </section>
+
+  <section class="cta" id="e-lead">
+    <h2>If you are losing more water than what is expected due to evaporation, contact us today for a leak detection.</h2>
+    <a class="btn btn-1" id="e-contact" href="#" hidden>Contact us</a>
+  </section>
+
+  <section class="feedback" id="e-feedback">
+    <p class="fbq" id="e-fbq">Was this useful?</p>
+    <div class="fbrow" id="e-fbrow">
+      <button class="fbbtn" data-fb="yes" aria-pressed="false">Yes</button>
+      <button class="fbbtn" data-fb="no" aria-pressed="false">No</button>
+    </div>
+    <p class="fbthanks" id="e-fbthanks" hidden></p>
+    <button class="sharebtn" id="e-share">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M5 14v5a1 1 0 001 1h12a1 1 0 001-1v-5"/></svg>
+      Share this page with a friend
+    </button>
+    <p class="leadnote" id="e-sharenote"></p>
+  </section>
+
+<p class="foot" id="attrib">
+  Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener" style="color:var(--ink-3)">Open-Meteo.com</a>
+  (CC BY 4.0). Postal code lookup by Zippopotam.us.
+</p>
+</div>
+<script>
+/* ============================================================
+   POOL WATER LOSS — standalone evaporation estimate
+   Public-facing. Contains no diagnostic logic, no customer
+   records, and no link to the leak diagnostic tool.
+
+   CONFIG — edit these settings and the page is live.
+   ============================================================ */
+const CONFIG = {
+  company: "Benchmark Pools & Spas",
+  /* Point this at your existing contact form and a "Contact us" button appears
+     under the estimate. Leave it blank and the closing line shows on its own
+     with no button. This page collects nothing itself — your form does that. */
+  contactUrl: "https://www.benchmarkpoolsandspas.com/contact",
+  /* Tag added to the contact link so your form can record where the visitor
+     came from. Deliberately NOT called utm_source: UTM parameters on an
+     internal link start a new analytics session and overwrite the visitor's
+     original acquisition source, which would corrupt the attribution you are
+     trying to measure. A plain custom parameter has no such side effect. */
+  sourceTag: "water-loss-estimator",
+
+  /* ---- feedback and sharing ----
+     Both only ever SEND — nothing is read back and nothing is displayed to the
+     visitor, so if either fails it fails silently and costs nothing.
+
+     feedbackUrl  optional JSON POST endpoint. Leave blank and the vote is not
+                  recorded anywhere; the visitor still gets a thank-you, so do
+                  not leave it blank and then wonder where the votes went.
+     If your site already runs Google Analytics, votes and shares are sent as
+     GA events automatically with no endpoint needed. */
+  feedbackUrl: "",
+  /* The URL friends receive. Blank = wherever this page is hosted.
+     A ?ref=share tag is appended so word-of-mouth arrivals are identifiable. */
+  shareUrl: "https://calculator.benchmarkpools.com/",
+  shareTitle: "Pool water loss calculator",
+  shareText:  "Find out how much water your pool should be losing to evaporation — free calculator from Benchmark Pools & Spas."
+};
+
+/* ============================================================
+   PHYSICS — ASHRAE / Carrier
+   W = (95 + 0.425 v)(Pw - Pa)/Y, lb/hr/ft2.
+   v is air velocity AT THE WATER SURFACE IN FEET PER MINUTE — not mph.
+   shelter converts reported 10 m wind (mph) to surface wind (mph); x88 -> ft/min.
+   ============================================================ */
+const Y=1050,LB_GAL=8.34,GAL_FT2_IN=0.6233,MPH_FPM=88;
+const f2c=f=>(f-32)/1.8;
+const satVP=F=>{const t=f2c(F);return 0.61121*Math.exp((18.678-t/234.5)*t/(257.14+t))*0.2952998;};
+function surfaceFPM(wind10mph,shelter){ return Math.max(0,wind10mph)*shelter*MPH_FPM; }
+function evapInPerHr(wt,dp,wind10,pressInHg,shelter,movement){
+  const dP=Math.max(0,satVP(wt)-satVP(dp)), v=surfaceFPM(wind10,shelter);
+  return (95+0.425*v)*dP/Y*(29.92/(pressInHg||29.92))*movement/LB_GAL/GAL_FT2_IN;
+}
+/* Industry rule of thumb: about a quarter inch a day is typical, up to roughly
+   half an inch in hot, dry, windy conditions. Only the upper bound is used —
+   it decides whether the "conditions are extreme today" note appears. */
+const TYPICAL_HIGH=0.35;
+
+/* ============================================================
+   WEATHER
+   ============================================================ */
+async function lookupZip(zip){
+  const r=await fetch(`https://api.zippopotam.us/us/${zip}`);
+  if(!r.ok) throw new Error(`No US zip code matches ${zip}. Check the digits.`);
+  const j=await r.json(),p=j.places[0];
+  return {lat:+p.latitude,lon:+p.longitude,name:`${p['place name']}, ${p['state abbreviation']} ${zip}`};
+}
+const WX_CACHE=new Map(), WX_INFLIGHT=new Map();
+const wxKey=(lat,lon)=>[lat.toFixed(2),lon.toFixed(2),Math.floor(Date.now()/3600000)].join('|');
+async function getWx(lat,lon){
+  const key=wxKey(lat,lon);
+  if(WX_CACHE.has(key)) return WX_CACHE.get(key);
+  if(WX_INFLIGHT.has(key)) return WX_INFLIGHT.get(key);
+  const pr=fetchWx(lat,lon).then(j=>{
+    WX_CACHE.set(key,j);
+    if(WX_CACHE.size>12) WX_CACHE.delete(WX_CACHE.keys().next().value);
+    return j;
+  }).finally(()=>WX_INFLIGHT.delete(key));
+  WX_INFLIGHT.set(key,pr);
+  return pr;
+}
+async function fetchWx(lat,lon){
+  const url='https://api.open-meteo.com/v1/forecast'
+    +`?latitude=${lat}&longitude=${lon}`
+    +'&current=temperature_2m,dew_point_2m,wind_speed_10m,surface_pressure,precipitation'
+    +'&hourly=temperature_2m,dew_point_2m,wind_speed_10m,surface_pressure,precipitation'
+    +'&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch'
+    +'&past_days=1&forecast_days=1&timezone=auto';
+  const r=await fetch(url);
+  if(!r.ok) throw new Error("Couldn't reach the weather service. Check your connection.");
+  const j=await r.json();
+  const tgt=j.current.time.slice(0,13);
+  const i=j.hourly.time.findIndex(t=>t.slice(0,13)===tgt);
+  j._nowIdx=i<0?j.hourly.time.length-1:i;
+  return j;
+}
+
+/* ============================================================
+   ESTIMATE
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const n2=x=>(+x).toFixed(2);
+const E={place:'',zip:'',lat:0,lon:0,wx:null,area:450,shelter:0.12,movement:0.85,wt:84};
+
+function eModel(){
+  if(!E.wx) return null;
+  const inDay=evapInPerHr(E.wt,E.wx.dp,E.wx.wind,E.wx.press,E.shelter,E.movement)*24;
+  const net=Math.max(0,inDay-(E.wx.precip||0));
+  return {inDay,net,galDay:net*GAL_FT2_IN*E.area};
+}
+/* inDay === null draws the pool with no markers at all: an empty state rather
+   than a reading of zero, which would be a wrong answer instead of an absent one. */
+function eGauge(inDay){
+  const empty = (inDay===null||inDay===undefined||isNaN(inDay));
+  const top=46,drop=empty?0:Math.min(152,inDay*150);
+  $('e-svg').innerHTML=`<title id="e-gt">Waterline dropping ${n2(inDay)} inches over 24 hours</title>
+  <defs><linearGradient id="ewg" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#53c7d6"/><stop offset="1" stop-color="#172d5c"/></linearGradient></defs>
+  <rect x="8" y="14" width="84" height="18" fill="#b9c9da"/><rect x="8" y="32" width="84" height="4" fill="#9fb2c6"/>
+  <rect x="12" y="36" width="80" height="30" fill="#055c9d" opacity=".22"/>
+  <line x1="12" y1="36" x2="92" y2="36" stroke="#53c7d6" opacity=".5"/>
+  <line x1="12" y1="66" x2="92" y2="66" stroke="#53c7d6" opacity=".5"/>
+  <rect x="12" y="${top+drop}" width="80" height="${212-top-drop}" fill="url(#ewg)"/>
+  ${empty?'':`
+  <line x1="6" y1="${top}" x2="104" y2="${top}" stroke="#f4fbff" stroke-width="2"/>
+  <text x="108" y="${top+4}" fill="#f4fbff" font-family="IBM Plex Mono" font-size="11" font-weight="600">NOW</text>
+  <line x1="6" y1="${top+drop}" x2="104" y2="${top+drop}" stroke="#53c7d6" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="108" y="${top+drop+4}" fill="#53c7d6" font-family="IBM Plex Mono" font-size="11" font-weight="600">24H</text>
+  <line x1="100" y1="${top}" x2="100" y2="${top+drop}" stroke="#53c7d6"/>`}`;
+}
+function eContext(m){
+  return `Given the current conditions — air temperature, dew point, wind speed, humidity and water temperature — `
+    +`your estimated water loss due to evaporation is approximately ${Math.round(m.galDay)} gallons/day `
+    +`at ${E.area} sq ft.`;
+}
+function eRecompute(){
+  const m=eModel(); if(!m) return;
+  $('e-inches').textContent=n2(m.net);
+  $('e-gallons').innerHTML=`${Math.round(m.galDay)} <span>gallons/day at ${E.area} sq ft</span>`;
+  eGauge(m.net);
+  $('e-context').textContent=eContext(m);
+  const urgent=m.net>TYPICAL_HIGH;
+  $('e-urgent').hidden=!urgent;
+  if(urgent) $('e-urgent').textContent="Conditions today are on the hot, dry or windy side, so evaporation alone is high. If your pool is dropping faster than this figure, the difference is not evaporation.";
+  $('e-costtoggle').hidden=false;
+  reportHeight();
+  refreshContactLink();
+  eCostRecompute(m);
+}
+function eCostRecompute(m){
+  const rate=parseFloat($('e-rate').value);
+  m=m||eModel();
+  if(!m){ $('e-cost').textContent='Enter a zip code first so there is a figure to convert.'; return; }
+  if(isNaN(rate)||rate<=0){ $('e-cost').textContent=''; return; }
+  const perDay=m.galDay/1000*rate, perMonth=perDay*30;
+  $('e-cost').innerHTML=`About <b>$${perDay.toFixed(2)}/day</b>, or roughly <b>$${perMonth.toFixed(0)}/month</b> at
+    $${rate.toFixed(2)} per 1,000 gallons — evaporation only, not a leak.`;
+}
+async function eFetch(){
+  const zip=$('e-zip').value.trim(),btn=$('e-go'),err=$('e-err');
+  err.hidden=true;
+  if(!/^\d{5}$/.test(zip)){ err.textContent='Enter a five-digit US zip code.'; err.hidden=false; return; }
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  try{
+    const loc=await lookupZip(zip);
+    const raw=await getWx(loc.lat,loc.lon);
+    const H=raw.hourly,end=raw._nowIdx,start=Math.max(0,end-23);
+    const avg=a=>{let s=0,n=0;for(let i=start;i<=end;i++)if(a[i]!=null){s+=a[i];n++;}return n?s/n:0;};
+    let rain=0; for(let i=start;i<=end;i++) rain+=(H.precipitation[i]||0);
+    E.zip=zip; E.place=loc.name; E.lat=loc.lat; E.lon=loc.lon;
+    E.wx={t:avg(H.temperature_2m),dp:avg(H.dew_point_2m),wind:avg(H.wind_speed_10m),
+          press:avg(H.surface_pressure)*0.02952998,precip:rain};
+    $('e-place').textContent=loc.name+' — using today\u2019s local conditions';
+    eRecompute();
+    reportHeight();
+  }catch(e){ err.textContent=e.message; err.hidden=false; }
+  finally{ btn.disabled=false; btn.textContent='Get my estimate'; }
+}
+function eBindSeg(id,onPick){
+  const g=$(id); if(!g) return;
+  g.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true'); onPick(parseFloat(b.dataset.v)); eRecompute();
+  }));
+}
+/* ---- wiring ---- */
+$('e-go').addEventListener('click',eFetch);
+$('e-zip').addEventListener('keydown',ev=>{ if(ev.key==='Enter') eFetch(); });
+eBindSeg('e-shelter',v=>E.shelter=v);
+eBindSeg('e-movement',v=>E.movement=v);
+document.querySelectorAll('[data-estep]').forEach(b=>b.addEventListener('click',()=>{
+  const [id,d]=b.dataset.estep.split(','), el=$(id), step=parseFloat(d);
+  let v=parseFloat(el.value); if(isNaN(v)) v=0;
+  v=Math.max(parseFloat(el.min)||0, v+step);
+  el.value=v; el.dispatchEvent(new Event('input'));
+}));
+$('e-area').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){E.area=v; eRecompute();} });
+$('e-wt').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){E.wt=v; eRecompute();} });
+$('e-rate').addEventListener('input',()=>eCostRecompute());
+$('e-costtoggle').addEventListener('click',()=>{
+  const open=!$('e-costwrap').hidden;
+  $('e-costwrap').hidden=open;
+  $('e-costtoggle').textContent=open?'See this in dollars':'Hide dollar estimate';
+});
+/* ============================================================
+   FEEDBACK AND SHARING
+   Two lightweight signals, both write-only.
+
+   Neither measures revenue. The vote catches the visitor the lead
+   numbers cannot see — the one who learns their loss is normal and
+   leaves reassured. The share is the stronger signal of the two,
+   because a page view costs a visitor nothing while putting their
+   own name behind a recommendation costs them something real.
+   ============================================================ */
+
+/* Is this page running inside an embed (Wix, Squarespace, an iframe on your own
+   site)? Several things behave differently there and have to be handled. */
+const FRAMED=(function(){ try{ return window.self!==window.top; }catch(e){ return true; } })();
+
+/* The page's own URL, as a visitor would see it. Inside an embed, location.*
+   describes the IFRAME, not the page the visitor is looking at — so the parent
+   URL has to come from document.referrer, and CONFIG.shareUrl beats both. */
+function pageUrl(){
+  if(CONFIG.shareUrl) return CONFIG.shareUrl;
+  if(FRAMED){
+    try{ const r=new URL(document.referrer); return r.origin+r.pathname; }catch(e){}
+  }
+  try{ return location.origin+location.pathname; }catch(e){ return ''; }
+}
+/* Was this visitor sent here by someone else's share? When embedded the query
+   string lives on the parent page, so check the referrer as well. */
+const REFERRED=(function(){
+  try{
+    if(/[?&]ref=share/.test(location.search||'')) return true;
+    if(FRAMED&&/[?&]ref=share/.test(document.referrer||'')) return true;
+  }catch(e){}
+  return false;
+})();
+
+/* Embeds get a fixed height and will clip this page as it grows. If the host
+   listens for the message it can resize; harmless when nothing is listening. */
+function reportHeight(){
+  if(!FRAMED) return;
+  try{
+    const h=Math.ceil(document.documentElement.scrollHeight);
+    if(h&&h!==reportHeight._last){
+      reportHeight._last=h;
+      window.parent.postMessage({type:'bps-height',height:h},'*');
+    }
+  }catch(e){}
+}
+
+function track(name,detail){
+  /* GA4 if the host site already loads it — no endpoint required */
+  try{ if(typeof gtag==='function') gtag('event',name,detail||{}); }catch(e){}
+  if(!CONFIG.feedbackUrl) return;
+  try{
+    fetch(CONFIG.feedbackUrl,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(Object.assign({event:name,t:new Date().toISOString()},detail||{}))});
+  }catch(e){}
+}
+function estimateContext(){
+  const m=eModel();
+  /* has_estimate distinguishes a considered response from someone who voted
+     before running anything. Both are worth keeping; only one means much. */
+  return {has_estimate:!!m,zip:E.zip||'',area:E.area,
+          est_gpd:m?Math.round(m.galDay):null,est_inday:m?+n2(m.net):null,
+          referred_by_share:REFERRED};
+}
+function initFeedback(){
+  let voted=false;
+  try{ voted=sessionStorage.getItem('bps_voted')==='1'; }catch(e){}
+  document.querySelectorAll('[data-fb]').forEach(b=>b.addEventListener('click',()=>{
+    if(voted) return;
+    voted=true;
+    try{ sessionStorage.setItem('bps_voted','1'); }catch(e){}
+    const v=b.dataset.fb;
+    b.setAttribute('aria-pressed','true');
+    track('estimator_feedback',Object.assign({useful:v},estimateContext()));
+    $('e-fbrow').hidden=true;
+    $('e-fbq').hidden=true;
+    const t=$('e-fbthanks');
+    t.textContent = v==='yes'
+      ? 'Thank you — glad it helped.'
+      : 'Thank you. If it missed what you needed, our team can answer directly.';
+    t.hidden=false;
+  }));
+}
+function shareLink(){
+  const base=pageUrl();
+  if(!base) return '';
+  return base+(base.indexOf('?')>-1?'&':'?')+'ref=share';
+}
+function initShare(){
+  const btn=$('e-share'), note=$('e-sharenote');
+  btn.addEventListener('click',async()=>{
+    const url=shareLink();
+    if(!url){ note.textContent='Copy this page\u2019s address from your browser to share it.'; return; }
+    track('estimator_share',estimateContext());
+    /* phones get the real share sheet; desktops fall back to the clipboard */
+    if(navigator.share){
+      try{
+        await navigator.share({title:CONFIG.shareTitle,text:CONFIG.shareText,url:url});
+        note.textContent='Thanks for passing it on.';
+        return;
+      }catch(e){ if(e&&e.name==='AbortError'){ note.textContent=''; return; } }
+    }
+    try{
+      await navigator.clipboard.writeText(url);
+      note.textContent='Link copied — paste it wherever you like.';
+    }catch(e){
+      note.textContent=url;
+    }
+  });
+}
+
+/* Appends source, zip, and the estimate on screen at the moment of the click.
+   Handles a contactUrl that already carries its own query string. */
+function contactHref(){
+  if(!CONFIG.contactUrl) return '';
+  const p=['source='+encodeURIComponent(CONFIG.sourceTag||'water-loss-estimator')];
+  if(REFERRED) p.push('ref=share');
+  if(E.zip) p.push('zip='+encodeURIComponent(E.zip));
+  const m=eModel();
+  if(m){
+    p.push('est_gpd='+Math.round(m.galDay));
+    p.push('est_inday='+n2(m.net));
+  }
+  return CONFIG.contactUrl+(CONFIG.contactUrl.indexOf('?')>-1?'&':'?')+p.join('&');
+}
+function refreshContactLink(){
+  if(!CONFIG.contactUrl) return;
+  const a=$('e-contact');
+  a.href=contactHref(); a.hidden=false;
+}
+refreshContactLink();
+eGauge(null);
+refreshContactLink();
+initFeedback();
+initShare();
+reportHeight();
+try{ if(window.ResizeObserver) new ResizeObserver(reportHeight).observe(document.body); }catch(e){}
+$('brandline').textContent=CONFIG.company;
+</script>
+</body>
+</html>
