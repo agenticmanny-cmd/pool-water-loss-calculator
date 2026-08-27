@@ -9,6 +9,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Water Loss">
 <meta name="theme-color" content="#172d5c">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://benchmarkpoolsandspas.com/water-loss-calculator">
+<!-- Social preview. Without these a shared link renders as a bare URL, which
+     undercuts the whole point of the share button. Update the URLs to match
+     wherever this page actually lives. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Benchmark Pools &amp; Spas">
+<meta property="og:title" content="How much water should your pool lose?">
+<meta property="og:description" content="Free calculator. Enter your zip code and see today&#39;s expected evaporation, based on National Weather Service data for your area.">
+<meta property="og:url" content="https://benchmarkpoolsandspas.com/water-loss-calculator">
+<meta property="og:image" content="https://benchmarkpoolsandspas.com/og-water-loss.png">
+<meta property="og:image:alt" content="Pool water loss calculator by Benchmark Pools &amp; Spas">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How much water should your pool lose?">
+<meta name="twitter:description" content="Free calculator using National Weather Service data for your zip code.">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%23172d5c'/%3E%3Cpath d='M0 108c30-14 45 6 60 6s30-20 60-6 30 6 60-4v76H0z' fill='%23055c9d'/%3E%3Cpath d='M0 92c30-14 45 6 60 6s30-20 60-6 30 6 60-4' stroke='%2353c7d6' stroke-width='7' fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,9 +80,13 @@ section{padding:var(--pad);border-bottom:1px solid var(--line)}
 .slabel{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-family:var(--f-data);
   font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px}
 .slabel b{color:var(--tile);font-weight:600}
-.ziprow{display:flex;gap:8px}
-.ziprow input{flex:1;min-height:var(--tap);border:1.5px solid var(--line);border-radius:var(--r);
-  background:#fff;padding:0 14px;font-family:var(--f-data);font-size:19px;font-weight:600;letter-spacing:.08em}
+.ziprow{display:flex;gap:8px;flex-wrap:wrap}
+/* 7.5em is the target, but the row must survive a 320px phone with a wide font
+   render: allow both the field and the button to shrink before anything overflows. */
+.ziprow input{flex:0 1 7.5em;width:7.5em;min-width:5.2em;min-height:var(--tap);border:1.5px solid var(--line);
+  border-radius:var(--r);background:#fff;padding:0 12px;font-family:var(--f-data);font-size:19px;
+  font-weight:600;letter-spacing:.12em;text-align:center}
+.ziprow .go{flex:1 1 auto;min-width:9em}
 input:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--oto);outline-offset:1px}
 .go{min-height:var(--tap);padding:0 20px;border:0;border-radius:var(--r);background:var(--water-deep);
   color:#fff;cursor:pointer;font-family:var(--f-body);font-size:14.5px;font-weight:700;
@@ -101,6 +120,18 @@ textarea{min-height:80px;resize:vertical;line-height:1.45}
   opacity:.72;margin-top:2px}
 .place{font-family:var(--f-disp);font-weight:400;font-size:19px;margin:0 0 2px}
 .stamp{font-family:var(--f-data);font-size:13px;color:var(--ink-3);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+@media(min-width:520px){
+.grid{grid-template-columns:repeat(4,1fr)}
+}
+.cell{background:#fff;padding:12px 13px}
+.cell dt{font-family:var(--f-data);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 5px}
+.cell dd{margin:0;font-family:var(--f-data);font-size:21px;font-weight:600;letter-spacing:-.02em}
+.cell dd u{text-decoration:none;font-size:13px;font-weight:500;color:var(--ink-3);margin-left:2px}
+.cell small{display:block;font-family:var(--f-data);font-size:12px;color:var(--ink-3);margin-top:3px}
+.cell input{width:100%;border:0;border-bottom:1.5px dashed var(--tile);background:transparent;
+  font-family:var(--f-data);font-size:21px;font-weight:600;padding:0}
 .result{background:var(--water-deep);color:var(--plaster);border-bottom:0}
 .result .slabel{color:#9fc4e0}
 .result .slabel b{color:var(--tile-lt)}
@@ -114,9 +145,20 @@ textarea{min-height:80px;resize:vertical;line-height:1.45}
 .gal{font-family:var(--f-data);font-size:16.5px;font-weight:600;color:#fff;margin:14px 0 0}
 .gal span{color:#9fc4e0;font-weight:500;font-size:14px}
 .rightnow{font-family:var(--f-data);font-size:13px;color:#9fc4e0;margin:6px 0 0}
+/* The cost block lives inside the dark result panel, so it cannot inherit the
+   light-background ink colours — the figure was rendering navy-on-navy and was
+   invisible. Everything inside .result gets panel-appropriate colours. */
+.result label{color:#f4fbff}
+.result .hint{color:#9fc4e0}
+.result .txt{background:#fff;color:var(--ink);border-color:#4488b9}
+.result .txt::placeholder{color:#7b8ea8}
+.result #e-cost{color:#fff}
+.result #e-cost b{color:var(--tile-lt)}
 .bar{height:7px;background:var(--plaster-2);border-radius:99px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--tile);border-radius:99px}
 .bar.neg i{background:var(--tile-lt)}
+.verdict.alert{border-left-color:var(--phenol);background:#fbecee}
+.pcard.alert{border-left-color:var(--phenol)}
 .empty{text-align:center;padding:34px 16px;border:1px dashed var(--line);background:#fff}
 .empty p{font-size:15px;color:var(--ink-2);margin:0}
 .feedback{padding:var(--pad);border-top:1px solid var(--line);background:var(--cream);text-align:center}
@@ -154,6 +196,32 @@ textarea{min-height:80px;resize:vertical;line-height:1.45}
 @media (prefers-reduced-motion:reduce){
 *{animation-duration:.001ms!important;transition-duration:.001ms!important}
 }
+/* Someone will print or PDF the estimate to show a spouse or keep on file.
+   Drop the interactive chrome, force the dark panel to ink-on-paper, and let
+   the figure and the reasoning carry over. */
+@media print{
+  body{background:#fff;color:#000;font-size:11pt}
+  .hdr{background:#fff;color:#000;padding:0 0 12pt}
+  .hdr::after{display:none}
+  .hdr h1{font-size:20pt}
+  .hdr h1 em,.eyebrow{color:#000}
+  .sub{color:#333}
+  .result{background:#fff;color:#000;border:1pt solid #000;padding:10pt}
+  .result .slabel,.result .slabel b,.big,.big i,.perday,.gal,.gal span,.rightnow{color:#000}
+  .result label,.result .hint{color:#000}
+  .go,.btn,.sharebtn,.fbrow,.fbbtn,.back,#e-costtoggle{display:none!important}
+  .cta,.feedback{background:#fff;border-top:1pt solid #000}
+  .urgent{background:#fff;border-left:2pt solid #000;color:#000}
+  section{border-bottom:none;padding:8pt 0}
+  a[href]::after{content:" (" attr(href) ")";font-size:9pt;color:#333}
+  .gauge{display:none}          /* the number and the sentence carry it */
+  .stepper button{display:none}
+  .stepper input{border:none;font-weight:700}
+  .seg button{border:none;padding:0 6pt}
+  .seg button[aria-pressed="false"]{display:none}
+  .seg button[aria-pressed="true"]{background:#fff;color:#000;font-weight:700}
+  .seg button span{display:none}
+}
 .urgent{margin:10px 0 0;padding:10px 12px;background:rgba(232,178,43,.14);border-left:3px solid var(--oto);
   font-size:13.5px;color:#f4fbff;line-height:1.4}
 .leadnote{font-size:13px;color:var(--ink-3);margin:10px 0 0;line-height:1.4}
@@ -161,6 +229,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.45}
 .fgroup .row2 .txt,.fgroup .row2 select,.fgroup .row3 .txt,.fgroup .row3 select{margin-bottom:0}
 .featrow select,.featrow .txt{margin-bottom:0;min-height:44px}
 .conf.high{background:var(--alk);color:#fff}
+.opp .val{font-family:var(--f-data);font-size:13px;font-weight:600;color:var(--tile);margin-top:6px;display:block}
 /* standalone page: no tab bar, so reclaim the space it reserved */
 body{padding-bottom:0}
 </style>
@@ -183,8 +252,8 @@ body{padding-bottom:0}
       </div>
       <p class="hint" style="margin:8px 0 0"><b>REQUIRED.</b> Your local air temperature, dew point and wind speed are what
         the estimate is calculated from, so the result stays blank until you enter one.</p>
-      <p class="stamp" id="e-place" style="margin:8px 0 0"></p>
-      <div class="err" id="e-err" hidden></div>
+      <p class="stamp" id="e-place" style="margin:8px 0 0" role="status" aria-live="polite"></p>
+      <div class="err" id="e-err" role="alert" aria-live="assertive" hidden></div>
     </div>
     <div class="field">
       <label for="e-area">Pool surface area (sq ft)</label>
@@ -228,7 +297,7 @@ body{padding-bottom:0}
       <div class="gauge">
         <svg id="e-svg" viewBox="0 0 150 220" role="img" aria-labelledby="e-gt"><title id="e-gt"></title></svg>
       </div>
-      <div class="readout">
+      <div class="readout" role="status" aria-live="polite">
         <p class="big"><span id="e-inches">&mdash;</span><i>in</i></p>
         <p class="perday" id="e-perday">per day</p>
         <p class="gal" id="e-gallons"></p>
@@ -246,7 +315,7 @@ body{padding-bottom:0}
           the sewer.</p>
         <input class="txt" id="e-rate" type="number" inputmode="decimal" step="0.25" placeholder="e.g. 6.50">
       </div>
-      <p class="gal" id="e-cost" style="color:var(--water-deep)"></p>
+      <p class="gal" id="e-cost"></p>
     </div>
   </section>
 
@@ -268,11 +337,6 @@ body{padding-bottom:0}
     </button>
     <p class="leadnote" id="e-sharenote"></p>
   </section>
-
-<p class="foot" id="attrib">
-  Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener" style="color:var(--ink-3)">Open-Meteo.com</a>
-  (CC BY 4.0). Postal code lookup by Zippopotam.us.
-</p>
 </div>
 <script>
 /* ============================================================
@@ -332,42 +396,259 @@ function evapInPerHr(wt,dp,wind10,pressInHg,shelter,movement){
 const TYPICAL_HIGH=0.35;
 
 /* ============================================================
-   WEATHER
+   NETWORK RELIABILITY
+   fetch() has NO default timeout. A stalled connection — a hung
+   socket, an unanswered CORS preflight, a phone that lost signal
+   mid-request — leaves the promise pending forever, and the UI sits
+   on a spinner with no way out. On a lead-generation page that is a
+   lost customer, so every request here is bounded.
+
+   Retry policy: one retry on a timeout or a network-level failure,
+   and on 5xx / 429, because those are usually transient. Never retry
+   a 4xx — the request itself is wrong and repeating it just doubles
+   the wait before the visitor sees a useful message.
    ============================================================ */
-async function lookupZip(zip){
-  const r=await fetch(`https://api.zippopotam.us/us/${zip}`);
-  if(!r.ok) throw new Error(`No US zip code matches ${zip}. Check the digits.`);
-  const j=await r.json(),p=j.places[0];
-  return {lat:+p.latitude,lon:+p.longitude,name:`${p['place name']}, ${p['state abbreviation']} ${zip}`};
+const NET = {
+  timeout: 7000,        /* per attempt */
+  retries: 1,           /* additional attempts after the first */
+  backoff: 600          /* ms before the retry */
+};
+
+class NetError extends Error {
+  constructor(msg, kind, status) {
+    super(msg);
+    this.kind = kind;          /* 'timeout' | 'offline' | 'http' | 'parse' */
+    this.status = status || 0;
+  }
 }
-const WX_CACHE=new Map(), WX_INFLIGHT=new Map();
-const wxKey=(lat,lon)=>[lat.toFixed(2),lon.toFixed(2),Math.floor(Date.now()/3600000)].join('|');
-async function getWx(lat,lon){
-  const key=wxKey(lat,lon);
-  if(WX_CACHE.has(key)) return WX_CACHE.get(key);
-  if(WX_INFLIGHT.has(key)) return WX_INFLIGHT.get(key);
-  const pr=fetchWx(lat,lon).then(j=>{
-    WX_CACHE.set(key,j);
-    if(WX_CACHE.size>12) WX_CACHE.delete(WX_CACHE.keys().next().value);
-    return j;
-  }).finally(()=>WX_INFLIGHT.delete(key));
-  WX_INFLIGHT.set(key,pr);
-  return pr;
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ---------- overall budget ----------
+   Per-request timeouts bound each hop, but the estimator makes three sequential
+   hops and each may retry. Worst case that is ~44 s, which no visitor will wait
+   through. An operation-wide deadline caps the whole sequence: later hops get
+   whatever budget remains, and the retry is skipped when there is not enough
+   time left for it to be worth attempting. */
+NET.budget = 18000;
+let OP_DEADLINE = 0;
+function beginOperation(ms) { OP_DEADLINE = Date.now() + (ms || NET.budget); }
+function endOperation() { OP_DEADLINE = 0; }
+function remainingBudget() { return OP_DEADLINE ? OP_DEADLINE - Date.now() : Infinity; }
+
+
+async function netFetch(url, opts) {
+  opts = opts || {};
+  let lastErr = null;
+  for (let attempt = 0; attempt <= NET.retries; attempt++) {
+    const left = remainingBudget();
+    if (left <= 0) throw lastErr || new NetError('the request timed out', 'timeout');
+    /* a retry is only worth starting if there is room for it to finish */
+    if (attempt && left < 2000) break;
+    if (attempt) await sleep(Math.min(NET.backoff * attempt, Math.max(0, left - 500)));
+    /* AbortController is in every browser this page targets, but if a very old
+       one lacks it the request still runs — just unbounded, as before. */
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const timer = setTimeout(() => { if (ctl) ctl.abort(); }, Math.max(500, Math.min(NET.timeout, remainingBudget())));
+    try {
+      const o = Object.assign({}, opts);
+      if (ctl) o.signal = ctl.signal;
+      const r = await fetch(url, o);
+      clearTimeout(timer);
+      if (r.ok) return r;
+      /* 4xx is a real answer: stop and let the caller explain it */
+      if (r.status >= 400 && r.status < 500 && r.status !== 429) {
+        throw new NetError('HTTP ' + r.status, 'http', r.status);
+      }
+      lastErr = new NetError('HTTP ' + r.status, 'http', r.status);
+    } catch (e) {
+      clearTimeout(timer);
+      if (e instanceof NetError && e.kind === 'http' && e.status < 500 && e.status !== 429) throw e;
+      lastErr = (e && e.name === 'AbortError')
+        ? new NetError('the request timed out', 'timeout')
+        : new NetError('could not reach the service', 'offline');
+    }
+  }
+  throw lastErr || new NetError('could not reach the service', 'offline');
 }
-async function fetchWx(lat,lon){
-  const url='https://api.open-meteo.com/v1/forecast'
-    +`?latitude=${lat}&longitude=${lon}`
-    +'&current=temperature_2m,dew_point_2m,wind_speed_10m,surface_pressure,precipitation'
-    +'&hourly=temperature_2m,dew_point_2m,wind_speed_10m,surface_pressure,precipitation'
-    +'&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch'
-    +'&past_days=1&forecast_days=1&timezone=auto';
-  const r=await fetch(url);
-  if(!r.ok) throw new Error("Couldn't reach the weather service. Check your connection.");
-  const j=await r.json();
-  const tgt=j.current.time.slice(0,13);
-  const i=j.hourly.time.findIndex(t=>t.slice(0,13)===tgt);
-  j._nowIdx=i<0?j.hourly.time.length-1:i;
-  return j;
+
+/* Turn any failure into something a homeowner can act on. Never surface a
+   status code or a stack trace on a customer-facing page. */
+function friendlyNetMessage(e, what) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false)
+    return 'You appear to be offline. Reconnect and try again.';
+  const kind = e && e.kind;
+  if (kind === 'timeout') return 'The weather service is slow to respond right now. Please try again in a moment.';
+  /* `what` must be a written sentence from the caller. Passing e.message here
+     leaked "HTTP 404" onto a customer-facing page. */
+  if (kind === 'http' && e.status === 404)
+    return (what && !/^HTTP\s/.test(what)) ? what : 'That location could not be found.';
+  if (kind === 'http' && e.status === 429) return 'Too many requests just now. Please wait a moment and try again.';
+  return 'Could not reach the weather service. Please try again in a moment.';
+}
+
+/* ============================================================
+   DATA LAYER — US National Weather Service + Census Bureau
+   Both are US government services: public domain, free for any
+   purpose including commercial, and no attribution required.
+
+   Two constraints shaped this code:
+
+   1. NWS asks for a descriptive User-Agent, but browsers forbid
+      scripts from setting that header, and attempting it makes the
+      CORS preflight fail outright. So we never set it — the
+      browser's own User-Agent is what NWS sees, and that is
+      accepted. Do not "fix" this by adding a header.
+
+   2. The Census geocoder sends no CORS headers, so fetch() cannot
+      read it. It does support JSONP, which is what geocodeZip uses.
+      Zippopotam remains as a fallback because it does send CORS.
+   ============================================================ */
+
+/* ---------- unit handling ----------
+   NWS labels every value with a unitCode. Never assume: a field that
+   is degC in one office can be degF in another, and windSpeed comes
+   back as km/h or m/s depending on the endpoint. */
+function nwsToF(v, unit) {
+  if (v == null) return null;
+  if (/degF/.test(unit)) return v;
+  if (/degC/.test(unit)) return v * 9 / 5 + 32;
+  if (/K\b/.test(unit))  return (v - 273.15) * 9 / 5 + 32;
+  return v;
+}
+function nwsToMph(v, unit) {
+  if (v == null) return null;
+  if (/mi_h|mph/.test(unit))  return v;
+  if (/km_h-1|km_h/.test(unit)) return v * 0.621371;
+  if (/m_s-1|m_s/.test(unit))   return v * 2.236936;
+  if (/kn/.test(unit))          return v * 1.150779;
+  return v;
+}
+function nwsToInches(v, unit) {
+  if (v == null) return null;
+  if (/\[in_i\]|inch/.test(unit)) return v;
+  if (/mm/.test(unit)) return v / 25.4;
+  if (/\bm\b/.test(unit)) return v * 39.3701;
+  return v;
+}
+function nwsMetres(v, unit) {
+  if (v == null) return null;
+  if (/\[ft_i\]|foot/.test(unit)) return v * 0.3048;
+  return v;
+}
+
+/* Standard-atmosphere pressure from elevation. The forecast grid does not
+   reliably carry pressure, and a derived value from a known elevation is
+   steadier than a station reading anyway. The term is small: it enters the
+   evaporation model as a 29.92/P ratio. */
+function pressureFromElevation(metres) {
+  if (metres == null) return 29.92;
+  return 29.92 * Math.pow(1 - 2.25577e-5 * metres, 5.25588);
+}
+
+/* ---------- ISO 8601 interval expansion ----------
+   Grid values arrive as {validTime:"2026-08-20T12:00:00+00:00/PT6H", value:x},
+   meaning "x holds for the next 6 hours". Expand to one entry per hour so the
+   evaporation model can integrate hour by hour as it does elsewhere. */
+function parseDurationHours(d) {
+  const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?$/.exec(d || '');
+  if (!m) return 1;
+  const days = +(m[1] || 0), hours = +(m[2] || 0), mins = +(m[3] || 0);
+  return Math.max(1, days * 24 + hours + Math.round(mins / 60));
+}
+function expandSeries(values, convert) {
+  const out = new Map();
+  for (const v of (values || [])) {
+    const [startISO, dur] = String(v.validTime || '').split('/');
+    const start = Date.parse(startISO);
+    if (!isFinite(start)) continue;
+    const hrs = parseDurationHours(dur);
+    const val = convert(v.value);
+    for (let i = 0; i < hrs; i++) out.set(start + i * 3600000, val);
+    }
+  return out;
+}
+
+/* ---------- geocoding ----------
+   Census first (public domain, no attribution). JSONP because the endpoint
+   sends no CORS headers. Falls back to Zippopotam, which does. */
+
+/* ---------- zip -> coordinates ----------
+   The Census /locations/onelineaddress endpoint geocodes STREET ADDRESSES. Live
+   testing confirmed a bare five-digit zip returns a valid response with zero
+   matches — reliably, for every zip. It was previously raced against this call
+   and always lost, costing one guaranteed-wasted request per lookup, so it has
+   been removed rather than left in as decoration.
+
+   Replacing this with a public-domain source (the Census TIGERweb ZCTA layer)
+   is worth doing, but only once it is confirmed reachable from a browser. */
+async function geocodeZip(zip) {
+  let r;
+  try {
+    r = await netFetch('https://api.zippopotam.us/us/' + zip);
+  } catch (e) {
+    if (e && e.status === 404) throw new Error('No US zip code matches ' + zip + '. Check the digits.');
+    throw e;
+  }
+  const j = await r.json(), p = j.places && j.places[0];
+  if (!p) throw new Error('No US zip code matches ' + zip + '. Check the digits.');
+  return { lat: +p.latitude, lon: +p.longitude, source: 'zippopotam',
+           name: p['place name'] + ', ' + p['state abbreviation'] };
+}
+
+/* ---------- NWS: locate the grid and the observing stations ---------- */
+async function nwsPoint(lat, lon) {
+  /* NWS rejects more than four decimal places on coordinates */
+  const url = 'https://api.weather.gov/points/' + lat.toFixed(4) + ',' + lon.toFixed(4);
+  let r;
+  try {
+    r = await netFetch(url, { headers: { Accept: 'application/geo+json' } });
+  } catch (e) {
+    /* A 404 here is meaningful, not a failure: the coordinates fall outside the
+       forecast area. Translate it before it reaches the visitor. */
+    if (e && e.status === 404) throw new Error(
+      'That zip code is outside the National Weather Service forecast area. '
+      + 'The service covers the United States and its territories.');
+    throw e;
+  }
+  const j = await r.json();
+  const p = j.properties || {};
+  const rel = (p.relativeLocation && p.relativeLocation.properties) || {};
+  return {
+    gridUrl: p.forecastGridData,
+    stationsUrl: p.observationStations,
+    tz: p.timeZone,
+    city: rel.city, state: rel.state
+  };
+}
+
+/* ---------- NWS: forecast grid, expanded to hourly ---------- */
+async function nwsGridHourly(gridUrl) {
+  const r = await netFetch(gridUrl, { headers: { Accept: 'application/geo+json' } });
+  const p = (await r.json()).properties || {};
+  const elevM = p.elevation ? nwsMetres(p.elevation.value, p.elevation.unitCode) : null;
+  const press = pressureFromElevation(elevM);
+
+  const temp = expandSeries(p.temperature && p.temperature.values,
+                v => nwsToF(v, (p.temperature || {}).uom || 'wmoUnit:degC'));
+  const dew  = expandSeries(p.dewpoint && p.dewpoint.values,
+                v => nwsToF(v, (p.dewpoint || {}).uom || 'wmoUnit:degC'));
+  const wind = expandSeries(p.windSpeed && p.windSpeed.values,
+                v => nwsToMph(v, (p.windSpeed || {}).uom || 'wmoUnit:km_h-1'));
+  const rain = expandSeries(p.quantitativePrecipitation && p.quantitativePrecipitation.values,
+                v => nwsToInches(v, (p.quantitativePrecipitation || {}).uom || 'wmoUnit:mm'));
+
+  /* one row per hour, only where temperature and dew point both exist */
+  const hours = [];
+  for (const t of [...temp.keys()].sort((a, b) => a - b)) {
+    const dp = dew.get(t);
+    if (dp == null) continue;
+    hours.push({ t, temp: temp.get(t), dp,
+                 wind: wind.get(t) == null ? 0 : wind.get(t),
+                 rain: rain.get(t) == null ? 0 : rain.get(t),
+                 press });
+  }
+  return { hours, elevM, press };
 }
 
 /* ============================================================
@@ -403,10 +684,16 @@ function eGauge(inDay){
   <text x="108" y="${top+drop+4}" fill="#53c7d6" font-family="IBM Plex Mono" font-size="11" font-weight="600">24H</text>
   <line x1="100" y1="${top}" x2="100" y2="${top+drop}" stroke="#53c7d6"/>`}`;
 }
+/* Every input named here is one the model actually consumes. The earlier wording
+   claimed air temperature and humidity, neither of which the equation reads —
+   dew point is the single moisture variable and water temperature supplies the
+   other side of the gradient. Elevation and shelter DO matter and were unnamed:
+   elevation alone moved a Denver estimate by 22% in live testing. */
 function eContext(m){
-  return `Given the current conditions — air temperature, dew point, wind speed, humidity and water temperature — `
-    +`your estimated water loss due to evaporation is approximately ${Math.round(m.galDay)} gallons/day `
-    +`at ${E.area} sq ft.`;
+  return `Using today\u2019s National Weather Service forecast for your zip code — how dry the air is `
+    +`and how hard the wind is blowing — along with your water temperature, elevation and how `
+    +`sheltered the pool sits, your estimated water loss due to evaporation is approximately `
+    +`${Math.round(m.galDay)} gallons/day at ${E.area} sq ft.`;
 }
 function eRecompute(){
   const m=eModel(); if(!m) return;
@@ -431,25 +718,67 @@ function eCostRecompute(m){
   $('e-cost').innerHTML=`About <b>$${perDay.toFixed(2)}/day</b>, or roughly <b>$${perMonth.toFixed(0)}/month</b> at
     $${rate.toFixed(2)} per 1,000 gallons — evaporation only, not a leak.`;
 }
+/* Normalise before validating: people paste "75201-1234", type a space, or copy
+   a zip with a non-breaking space in it. Rejecting those is needless friction. */
+function normaliseZip(raw){
+  const digits=String(raw||'')
+    .replace(/[\u2010-\u2015\u2212]/g,'-')      /* unicode dashes */
+    .replace(/[\s\u00a0\u200b]/g,'')            /* spaces, nbsp, zero-width */
+    .replace(/[\uff10-\uff19]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xfee0)) /* full-width digits */
+    .split('-')[0]
+    .replace(/\D/g,'');
+  return digits.slice(0,5);
+}
 async function eFetch(){
-  const zip=$('e-zip').value.trim(),btn=$('e-go'),err=$('e-err');
+  const btn=$('e-go'),err=$('e-err');
+  const zip=normaliseZip($('e-zip').value);
+  if(zip!==$('e-zip').value) $('e-zip').value=zip;   /* show what we understood */
   err.hidden=true;
-  if(!/^\d{5}$/.test(zip)){ err.textContent='Enter a five-digit US zip code.'; err.hidden=false; return; }
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  if(zip.length!==5){
+    err.textContent='Please enter a five-digit US zip code.';
+    err.hidden=false; $('e-zip').focus(); return;
+  }
+  const step=t=>{ $('e-place').textContent=t; };
+  btn.disabled=true; btn.setAttribute('aria-busy','true');
+  btn.innerHTML='<span class="spin"></span>';
+  beginOperation();
   try{
-    const loc=await lookupZip(zip);
-    const raw=await getWx(loc.lat,loc.lon);
-    const H=raw.hourly,end=raw._nowIdx,start=Math.max(0,end-23);
-    const avg=a=>{let s=0,n=0;for(let i=start;i<=end;i++)if(a[i]!=null){s+=a[i];n++;}return n?s/n:0;};
-    let rain=0; for(let i=start;i<=end;i++) rain+=(H.precipitation[i]||0);
-    E.zip=zip; E.place=loc.name; E.lat=loc.lat; E.lon=loc.lon;
-    E.wx={t:avg(H.temperature_2m),dp:avg(H.dew_point_2m),wind:avg(H.wind_speed_10m),
-          press:avg(H.surface_pressure)*0.02952998,precip:rain};
-    $('e-place').textContent=loc.name+' — using today\u2019s local conditions';
+    /* Three round trips, each narrated. Silence during a multi-second wait is
+       what makes a visitor close the tab. */
+    step('Looking up '+zip+'\u2026');
+    const loc=await geocodeZip(zip);
+    step('Finding your local forecast area\u2026');
+    const pt=await nwsPoint(loc.lat,loc.lon);
+    step('Fetching the forecast\u2026');
+    const grid=await nwsGridHourly(pt.gridUrl);
+
+    const now=Date.now();
+    let rows=grid.hours.filter(h=>h.t>=now-3600000).slice(0,24);
+    if(rows.length<6) rows=grid.hours.slice(0,24);
+    if(!rows.length) throw new Error('The forecast service has no data for that area right now. Please try again later.');
+    const avg=k=>rows.reduce((a,h)=>a+(h[k]||0),0)/rows.length;
+    E.zip=zip; E.lat=loc.lat; E.lon=loc.lon;
+    /* Prefer the POSTAL city that belongs to the zip the visitor typed. NWS
+       relativeLocation is the nearest named place to the forecast grid cell,
+       which can be a neighbouring town: zip 80201 is Denver, but the grid cell
+       reports Aurora. Showing them the wrong town makes the whole estimate look
+       untrustworthy. NWS is kept only as a fallback. */
+    E.place=loc.name ? (loc.name+' '+zip)
+          : ((pt.city&&pt.state) ? (pt.city+', '+pt.state+' '+zip) : zip);
+    E.wx={t:avg('temp'),dp:avg('dp'),wind:avg('wind'),
+          press:rows[0].press||29.92,
+          precip:rows.reduce((a,h)=>a+(h.rain||0),0)};
+    E.hours=rows.length;
+    step(E.place+' \u2014 next '+rows.length+' hours from the National Weather Service');
     eRecompute();
     reportHeight();
-  }catch(e){ err.textContent=e.message; err.hidden=false; }
-  finally{ btn.disabled=false; btn.textContent='Get my estimate'; }
+  }catch(e){
+    step('');
+    err.textContent=(e && e.kind) ? friendlyNetMessage(e) : (e.message||'Something went wrong. Please try again.');
+    err.hidden=false;
+  }
+  finally{ endOperation(); btn.disabled=false; btn.removeAttribute('aria-busy');
+    btn.textContent='Get my estimate'; }
 }
 function eBindSeg(id,onPick){
   const g=$(id); if(!g) return;
