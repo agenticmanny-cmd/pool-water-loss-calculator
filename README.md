@@ -1,7 +1,7 @@
 # Pool Water Loss Calculator
 
 Public-facing evaporation estimator for Benchmark Pools & Spas, hosted via GitHub Pages
-at **calculator.benchmarkpools.com**.
+at **poolwaterlosscalculator.benchmarkpools.com**.
 
 This repo intentionally contains only the deployable page (`index.html`) and the
 `CNAME` file for the custom domain. It has no diagnostic logic and no customer data.
@@ -19,5 +19,5 @@ leak diagnostic tool) live in:
 ## DNS
 
 A CNAME record at the DNS host for `benchmarkpools.com` points
-`calculator.benchmarkpools.com` → `agenticmanny.github.io`.
+`poolwaterlosscalculator.benchmarkpools.com` → `agenticmanny.github.io`.
 See `OneDrive/Documents/Pool Water Loss Project/WIX-SETUP.md` for the Wix button setup.
