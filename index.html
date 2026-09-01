@@ -118,6 +118,32 @@ textarea{min-height:80px;resize:vertical;line-height:1.45}
 .seg button[aria-pressed="true"]{background:var(--water-deep);color:#fff}
 .seg button span{display:block;font-family:var(--f-data);font-size:12px;font-weight:500;letter-spacing:.04em;
   opacity:.72;margin-top:2px}
+/* ---- pool size: shape picker + derived dimensions ----
+   Asking for surface area in square feet directly was a dead end: most
+   homeowners have no idea what theirs is, so the field kept its default and the
+   gallons figure came out 44-64% low on any pool bigger than the 15x30 default.
+   Shape plus a tape measure is something anyone can supply; the area is derived. */
+.shapes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(max-width:420px){.shapes{grid-template-columns:repeat(2,1fr)}}
+.shapes button{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;
+  min-height:var(--tap);padding:9px 5px 8px;border:1.5px solid var(--line);border-radius:var(--r);
+  background:#fff;cursor:pointer;font-family:var(--f-body);font-size:13px;font-weight:600;
+  color:var(--ink-2);line-height:1.16;text-align:center}
+.shapes button svg{width:100%;max-width:52px;height:30px;display:block;flex:0 0 auto}
+.shapes .pf{fill:var(--plaster-2);stroke:var(--mid);stroke-width:2.5;stroke-linejoin:round}
+.shapes .pt{fill:none;stroke:var(--mid);stroke-width:2.5;stroke-linecap:round}
+.shapes button[aria-pressed="true"]{background:var(--water-deep);color:#fff;border-color:var(--water-deep)}
+.shapes button[aria-pressed="true"] .pf{fill:var(--tile);stroke:var(--tile-lt)}
+.shapes button[aria-pressed="true"] .pt{stroke:var(--tile-lt)}
+.dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(134px,1fr));gap:10px;margin-top:12px}
+.dims label{display:block;font-family:var(--f-data);font-size:11.5px;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.dims input{width:100%;min-height:var(--tap);border:1.5px solid var(--line);border-radius:var(--r);
+  background:#fff;padding:0 12px;font-family:var(--f-data);font-size:19px;font-weight:600;text-align:center}
+.areaout{margin:12px 0 0;padding:10px 13px;border-radius:var(--r);background:var(--plaster-2);
+  font-family:var(--f-data);font-size:13.5px;font-weight:600;color:var(--water-deep)}
+.areaout b{font-size:18px;letter-spacing:-.01em}
+.areaout.warn{background:#fbecee;color:#8d2b3a}
 .place{font-family:var(--f-disp);font-weight:400;font-size:19px;margin:0 0 2px}
 .stamp{font-family:var(--f-data);font-size:13px;color:var(--ink-3);margin:0 0 16px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
@@ -221,6 +247,15 @@ textarea{min-height:80px;resize:vertical;line-height:1.45}
   .seg button[aria-pressed="false"]{display:none}
   .seg button[aria-pressed="true"]{background:#fff;color:#000;font-weight:700}
   .seg button span{display:none}
+  /* same treatment for the shape picker: keep the chosen shape and the
+     measurements, drop the options the visitor did not pick */
+  .shapes{display:block}
+  .shapes button{border:none;padding:0;flex-direction:row;gap:8px}
+  .shapes button[aria-pressed="false"]{display:none}
+  .shapes button[aria-pressed="true"]{background:#fff;color:#000;font-weight:700}
+  .shapes button svg{display:none}
+  .dims input{border:none;font-weight:700}
+  .areaout{background:#fff;color:#000;padding:4pt 0}
 }
 .urgent{margin:10px 0 0;padding:10px 12px;background:rgba(232,178,43,.14);border-left:3px solid var(--oto);
   font-size:13.5px;color:#f4fbff;line-height:1.4}
@@ -256,21 +291,30 @@ body{padding-bottom:0}
       <div class="err" id="e-err" role="alert" aria-live="assertive" hidden></div>
     </div>
     <div class="field">
-      <label for="e-area">Pool surface area (sq ft)</label>
-      <div class="stepper">
-        <button type="button" data-estep="e-area,-25" aria-label="Decrease">&minus;</button>
-        <input id="e-area" type="number" inputmode="numeric" value="450" min="50" max="20000" step="25">
-        <button type="button" data-estep="e-area,25" aria-label="Increase">+</button>
+      <label id="e-shapelabel">Pool size</label>
+      <p class="hint" style="margin:0 0 9px">Pick your shape, then measure it &mdash; we work out the surface area for you.</p>
+      <div class="shapes" id="e-shapes" role="group" aria-labelledby="e-shapelabel">
+        <button type="button" data-shape="rect" aria-pressed="true">
+          <svg viewBox="0 0 64 44" aria-hidden="true"><rect class="pf" x="5" y="9" width="54" height="26" rx="3"/></svg>
+          Rectangle</button>
+        <button type="button" data-shape="round" aria-pressed="false">
+          <svg viewBox="0 0 64 44" aria-hidden="true"><circle class="pf" cx="32" cy="22" r="15"/></svg>
+          Round</button>
+        <button type="button" data-shape="oval" aria-pressed="false">
+          <svg viewBox="0 0 64 44" aria-hidden="true"><ellipse class="pf" cx="32" cy="22" rx="27" ry="13"/></svg>
+          Oval</button>
+        <button type="button" data-shape="kidney" aria-pressed="false">
+          <svg viewBox="0 0 64 44" aria-hidden="true"><path class="pf" d="M21 6C11 6 4 13 4 22c0 9 7 16 17 16 9 0 13-6 20-8 7-2 13 2 18-3 4-5 3-13-3-16-6-3-11 3-18 3C31 14 30 6 21 6z"/></svg>
+          Kidney</button>
+        <button type="button" data-shape="lshape" aria-pressed="false">
+          <svg viewBox="0 0 64 44" aria-hidden="true"><path class="pf" d="M7 7h22v16h28v14H7z"/></svg>
+          L-shape</button>
+        <button type="button" data-shape="known" aria-pressed="false">
+          <svg viewBox="0 0 64 44" aria-hidden="true"><rect class="pf" x="5" y="14" width="54" height="16" rx="2"/><path class="pt" d="M17 14v7M29 14v10M41 14v7M52 14v10"/></svg>
+          I know my surface area</button>
       </div>
-      <p class="hint" style="margin:6px 0 0">A 16&times;32 rectangle is about 450&ndash;500.</p>
-    </div>
-    <div class="field">
-      <label>Wind shelter</label>
-      <div class="seg" id="e-shelter" role="group" aria-label="Wind shelter">
-        <button type="button" data-v="0.18">Minimal<span>Open lot</span></button>
-        <button type="button" data-v="0.12" aria-pressed="true">Typical<span>Privacy fence</span></button>
-        <button type="button" data-v="0.05">Protected<span>Screen, courtyard</span></button>
-      </div>
+      <div class="dims" id="e-dims"></div>
+      <p class="areaout" id="e-areaout" role="status" aria-live="polite"></p>
     </div>
     <div class="field">
       <label>Water movement</label>
@@ -656,7 +700,76 @@ async function nwsGridHourly(gridUrl) {
    ============================================================ */
 const $=id=>document.getElementById(id);
 const n2=x=>(+x).toFixed(2);
+/* shelter is no longer asked for. Across its full range it moved the estimate
+   by only 1.3x, and it asked the visitor to make a judgement call they had no
+   reliable way to make — so it is pinned at the "typical, privacy fence" value
+   that the overwhelming majority of residential pools sit at. It stays in the
+   model because the physics still needs a surface-wind factor. */
 const E={place:'',zip:'',lat:0,lon:0,wx:null,area:450,shelter:0.12,movement:0.85,wt:84};
+
+/* ---------- pool shape -> surface area ----------
+   Each entry owns the dimensions it asks for and the formula that turns them
+   into square feet. Round and oval are the ellipse area; kidney uses the pool
+   industry's (widest + narrowest) x length x 0.45 approximation; the L is just
+   its two rectangular sections added together. Defaults describe a common pool
+   of that shape, and the rectangle's 15x30 reproduces the 450 sq ft this field
+   used to default to, so an untouched form behaves exactly as it did before. */
+const SHAPES={
+  rect:  {dims:[['len','Length (ft)',30],['wid','Width (ft)',15]],
+          area:d=>d.len*d.wid},
+  round: {dims:[['dia','Diameter (ft)',18]],
+          area:d=>Math.PI*Math.pow(d.dia/2,2)},
+  oval:  {dims:[['len','Length (ft)',32],['wid','Width (ft)',16]],
+          area:d=>Math.PI*(d.len/2)*(d.wid/2)},
+  kidney:{dims:[['len','Length (ft)',30],['wide','Widest width (ft)',16],['narrow','Narrow width (ft)',10]],
+          area:d=>(d.wide+d.narrow)*d.len*0.45},
+  lshape:{dims:[['len1','Longest length (ft)',32],['wid1','Width (ft)',15],
+                ['len2','Shortest length (ft)',14],['wid2','Width (ft)',10]],
+          area:d=>d.len1*d.wid1+d.len2*d.wid2},
+  known: {dims:[['area','Surface area (sq ft)',450]],
+          area:d=>d.area}
+};
+let SHAPE='rect';
+/* Values are keyed by shape as well as field, so switching shapes to compare
+   and switching back does not wipe what was already typed. */
+const DIMS={};
+const dimKey=(s,f)=>s+'.'+f;
+
+function renderDims(){
+  const box=$('e-dims');
+  box.innerHTML=SHAPES[SHAPE].dims.map(([f,label,def])=>{
+    const k=dimKey(SHAPE,f), id='e-dim-'+f;
+    if(DIMS[k]==null) DIMS[k]=def;
+    return `<div><label for="${id}">${label}</label>`
+      +`<input id="${id}" type="number" inputmode="decimal" min="1" step="0.5" `
+      +`value="${DIMS[k]}" data-dim="${f}"></div>`;
+  }).join('');
+  box.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{
+    DIMS[dimKey(SHAPE,inp.dataset.dim)]=parseFloat(inp.value);
+    applyArea();
+  }));
+  applyArea();
+}
+/* A half-filled form must not silently keep using the last good area — the
+   visitor would be reading a figure that no longer matches what is on screen.
+   Say what is missing instead, and leave the estimate alone until it is there. */
+function applyArea(){
+  const s=SHAPES[SHAPE], out=$('e-areaout'), d={};
+  for(const [f] of s.dims){
+    const v=DIMS[dimKey(SHAPE,f)];
+    if(isNaN(v)||v<=0){
+      out.className='areaout warn';
+      out.textContent='Fill in every measurement above to get your surface area.';
+      return;
+    }
+    d[f]=v;
+  }
+  E.area=Math.round(s.area(d));
+  out.className='areaout';
+  out.innerHTML=(SHAPE==='known'?'Using ':'Estimated surface area: ')
+    +`<b>${E.area.toLocaleString()}</b> sq ft`;
+  eRecompute();
+}
 
 function eModel(){
   if(!E.wx) return null;
@@ -687,18 +800,19 @@ function eGauge(inDay){
 /* Every input named here is one the model actually consumes. The earlier wording
    claimed air temperature and humidity, neither of which the equation reads —
    dew point is the single moisture variable and water temperature supplies the
-   other side of the gradient. Elevation and shelter DO matter and were unnamed:
-   elevation alone moved a Denver estimate by 22% in live testing. */
+   other side of the gradient. Elevation DOES matter and was unnamed: it alone
+   moved a Denver estimate by 22% in live testing. Shelter is now named as an
+   assumption rather than an input, because it is no longer asked for. */
 function eContext(m){
   return `Using today\u2019s National Weather Service forecast for your zip code — how dry the air is `
-    +`and how hard the wind is blowing — along with your water temperature, elevation and how `
-    +`sheltered the pool sits, your estimated water loss due to evaporation is approximately `
-    +`${Math.round(m.galDay)} gallons/day at ${E.area} sq ft.`;
+    +`and how hard the wind is blowing — along with your water temperature and elevation, and `
+    +`assuming a typically sheltered yard, your estimated water loss due to evaporation is `
+    +`approximately ${Math.round(m.galDay)} gallons/day at ${E.area.toLocaleString()} sq ft.`;
 }
 function eRecompute(){
   const m=eModel(); if(!m) return;
   $('e-inches').textContent=n2(m.net);
-  $('e-gallons').innerHTML=`${Math.round(m.galDay)} <span>gallons/day at ${E.area} sq ft</span>`;
+  $('e-gallons').innerHTML=`${Math.round(m.galDay)} <span>gallons/day at ${E.area.toLocaleString()} sq ft</span>`;
   eGauge(m.net);
   $('e-context').textContent=eContext(m);
   const urgent=m.net>TYPICAL_HIGH;
@@ -790,16 +904,21 @@ function eBindSeg(id,onPick){
 /* ---- wiring ---- */
 $('e-go').addEventListener('click',eFetch);
 $('e-zip').addEventListener('keydown',ev=>{ if(ev.key==='Enter') eFetch(); });
-eBindSeg('e-shelter',v=>E.shelter=v);
 eBindSeg('e-movement',v=>E.movement=v);
+document.querySelectorAll('#e-shapes button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#e-shapes button').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  SHAPE=b.dataset.shape;
+  renderDims();
+}));
 document.querySelectorAll('[data-estep]').forEach(b=>b.addEventListener('click',()=>{
   const [id,d]=b.dataset.estep.split(','), el=$(id), step=parseFloat(d);
   let v=parseFloat(el.value); if(isNaN(v)) v=0;
   v=Math.max(parseFloat(el.min)||0, v+step);
   el.value=v; el.dispatchEvent(new Event('input'));
 }));
-$('e-area').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){E.area=v; eRecompute();} });
 $('e-wt').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){E.wt=v; eRecompute();} });
+renderDims();   /* draws the default rectangle's fields and seeds E.area */
 $('e-rate').addEventListener('input',()=>eCostRecompute());
 $('e-costtoggle').addEventListener('click',()=>{
   const open=!$('e-costwrap').hidden;

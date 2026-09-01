@@ -19,5 +19,5 @@ leak diagnostic tool) live in:
 ## DNS
 
 A CNAME record at the DNS host for `benchmarkpoolsandspas.com` points
-`poolwaterlosscalculator.benchmarkpoolsandspas.com` → `agenticmanny.github.io`.
+`poolwaterlosscalculator.benchmarkpoolsandspas.com` → `agenticmanny-cmd.github.io`.
 See `OneDrive/Documents/Pool Water Loss Project/WIX-SETUP.md` for the Wix button setup.
