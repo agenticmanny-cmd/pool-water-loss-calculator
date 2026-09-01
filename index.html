@@ -161,13 +161,36 @@ textarea{min-height:80px;resize:vertical;line-height:1.45}
 .result{background:var(--water-deep);color:var(--plaster);border-bottom:0}
 .result .slabel{color:#9fc4e0}
 .result .slabel b{color:var(--tile-lt)}
-.gaugebox{display:flex;gap:var(--pad);align-items:center;flex-wrap:wrap}
-.gauge{flex:0 0 auto;width:150px}
-.readout{flex:1;min-width:170px}
+/* ---- result ruler ----
+   Replaces the pool cross-section that used to sit here. Both drew the same
+   fact, but only one of them is actionable: the visitor is going to walk
+   outside and hold a tape measure against the waterline, so the figure is
+   snapped to the nearest 1/8 in and the marker lands on that exact hash mark.
+   The ruler is NOT reproduced at actual size and says so — otherwise someone
+   will hold their tape against the screen and get a wrong answer. */
+.readout{min-width:170px}
+.rulerwrap{margin:20px 0 0}
+.ruler{display:block;width:100%;height:auto}
+.ruler .rbody{fill:var(--cream)}
+.ruler .rtick{stroke:var(--water-deep);stroke-width:2;stroke-linecap:butt}
+/* the numbers sit BELOW the cream ruler body, i.e. on the dark result panel —
+   they have to be panel-light, not ruler-dark, or they vanish into it */
+.ruler .rnum{fill:#cfe4f5;font-family:var(--f-data);font-size:13px;font-weight:600;text-anchor:middle}
+.ruler .rfill{fill:var(--tile-lt);opacity:.28}
+.ruler .rmark{stroke:var(--phenol);stroke-width:3;stroke-linecap:round}
+.ruler .rchip{fill:var(--phenol)}
+.ruler .rchiptx{fill:#fff;font-family:var(--f-data);font-size:15px;font-weight:600;text-anchor:middle}
+.rulercap{font-family:var(--f-data);font-size:11.5px;letter-spacing:.05em;color:#9fc4e0;
+  margin:8px 0 0;text-align:center;line-height:1.35}
 .big{font-family:var(--f-disp);font-weight:400;font-size:clamp(44px,14vw,72px);line-height:.88;
   letter-spacing:-.045em;margin:0;color:#fff;font-variant-numeric:tabular-nums}
 .big i{font-style:normal;font-size:.4em;color:var(--tile-lt);margin-left:2px}
 .perday{font-family:var(--f-data);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#9fc4e0;margin:8px 0 0}
+/* The unrounded figure stays on screen: the gallons and dollar figures are
+   computed from it, not from the rounded fraction, and the two would not
+   reconcile if the exact value were hidden. */
+.exact{font-family:var(--f-data);font-size:12px;color:#7fa9cc;margin:7px 0 0;letter-spacing:.03em}
+.exact:empty{display:none}   /* no dead gap before an estimate exists */
 .gal{font-family:var(--f-data);font-size:16.5px;font-weight:600;color:#fff;margin:14px 0 0}
 .gal span{color:#9fc4e0;font-weight:500;font-size:14px}
 .rightnow{font-family:var(--f-data);font-size:13px;color:#9fc4e0;margin:6px 0 0}
@@ -240,7 +263,9 @@ textarea{min-height:80px;resize:vertical;line-height:1.45}
   .urgent{background:#fff;border-left:2pt solid #000;color:#000}
   section{border-bottom:none;padding:8pt 0}
   a[href]::after{content:" (" attr(href) ")";font-size:9pt;color:#333}
-  .gauge{display:none}          /* the number and the sentence carry it */
+  /* A ruler printed at whatever scale the printer chooses is worse than no
+     ruler — someone would measure against it. The fraction carries it. */
+  .rulerwrap{display:none}
   .stepper button{display:none}
   .stepper input{border:none;font-weight:700}
   .seg button{border:none;padding:0 6pt}
@@ -337,18 +362,19 @@ body{padding-bottom:0}
 
   <section class="result" id="e-result">
     <p class="slabel">Expected loss <b>From evaporation alone</b></p>
-    <div class="gaugebox">
-      <div class="gauge">
-        <svg id="e-svg" viewBox="0 0 150 220" role="img" aria-labelledby="e-gt"><title id="e-gt"></title></svg>
-      </div>
-      <div class="readout" role="status" aria-live="polite">
-        <p class="big"><span id="e-inches">&mdash;</span><i>in</i></p>
-        <p class="perday" id="e-perday">per day</p>
-        <p class="gal" id="e-gallons"></p>
-        <p class="rightnow" id="e-context">Enter your zip code above and tap <b>Get my estimate</b>. The other
-          fields are already set to typical values &mdash; adjust them to match your pool if you like.</p>
-        <p class="urgent" id="e-urgent" hidden></p>
-      </div>
+    <div class="readout" role="status" aria-live="polite">
+      <p class="big"><span id="e-inches">&mdash;</span><i>in</i></p>
+      <p class="perday" id="e-perday">per day</p>
+      <p class="exact" id="e-exact"></p>
+      <p class="gal" id="e-gallons"></p>
+      <p class="rightnow" id="e-context">Enter your zip code above and tap <b>Get my estimate</b>. The other
+        fields are already set to typical values &mdash; adjust them to match your pool if you like.</p>
+      <p class="urgent" id="e-urgent" hidden></p>
+    </div>
+    <div class="rulerwrap">
+      <svg id="e-ruler" class="ruler" viewBox="0 0 348 112" role="img" aria-labelledby="e-rt"><title id="e-rt"></title></svg>
+      <p class="rulercap">Rounded to the nearest 1/8 in so it matches a mark on your tape.<br>
+        Diagram is not actual size &mdash; measure with your own tape or ruler.</p>
     </div>
     <button class="back" id="e-costtoggle" style="margin-top:16px;color:#9fc4e0" hidden>See this in dollars</button>
     <div id="e-costwrap" hidden style="margin-top:12px">
@@ -777,25 +803,55 @@ function eModel(){
   const net=Math.max(0,inDay-(E.wx.precip||0));
   return {inDay,net,galDay:net*GAL_FT2_IN*E.area};
 }
-/* inDay === null draws the pool with no markers at all: an empty state rather
-   than a reading of zero, which would be a wrong answer instead of an absent one. */
-function eGauge(inDay){
-  const empty = (inDay===null||inDay===undefined||isNaN(inDay));
-  const top=46,drop=empty?0:Math.min(152,inDay*150);
-  $('e-svg').innerHTML=`<title id="e-gt">Waterline dropping ${n2(inDay)} inches over 24 hours</title>
-  <defs><linearGradient id="ewg" x1="0" y1="0" x2="0" y2="1">
-   <stop offset="0" stop-color="#53c7d6"/><stop offset="1" stop-color="#172d5c"/></linearGradient></defs>
-  <rect x="8" y="14" width="84" height="18" fill="#b9c9da"/><rect x="8" y="32" width="84" height="4" fill="#9fb2c6"/>
-  <rect x="12" y="36" width="80" height="30" fill="#055c9d" opacity=".22"/>
-  <line x1="12" y1="36" x2="92" y2="36" stroke="#53c7d6" opacity=".5"/>
-  <line x1="12" y1="66" x2="92" y2="66" stroke="#53c7d6" opacity=".5"/>
-  <rect x="12" y="${top+drop}" width="80" height="${212-top-drop}" fill="url(#ewg)"/>
-  ${empty?'':`
-  <line x1="6" y1="${top}" x2="104" y2="${top}" stroke="#f4fbff" stroke-width="2"/>
-  <text x="108" y="${top+4}" fill="#f4fbff" font-family="IBM Plex Mono" font-size="11" font-weight="600">NOW</text>
-  <line x1="6" y1="${top+drop}" x2="104" y2="${top+drop}" stroke="#53c7d6" stroke-width="2" stroke-dasharray="5 3"/>
-  <text x="108" y="${top+drop+4}" fill="#53c7d6" font-family="IBM Plex Mono" font-size="11" font-weight="600">24H</text>
-  <line x1="100" y1="${top}" x2="100" y2="${top+drop}" stroke="#53c7d6"/>`}`;
+/* ---------- eighth-inch rounding ----------
+   A tape measure has no 0.31 on it. Everything the visitor is asked to compare
+   against their own measurement is snapped to the nearest 1/8 in, which is the
+   finest division most people can read confidently on a tape, and the ruler
+   marker is drawn at the same snapped value so the number and the hash mark
+   can never disagree. */
+const EIGHTH=0.125;
+const snapEighth=v=>Math.round(v/EIGHTH)*EIGHTH;
+/* 0.375 -> "3/8", 0.5 -> "1/2", 1.125 -> "1 1/8". Eighths are reduced to the
+   coarsest equivalent because that is how a tape is actually read: nobody
+   says "four eighths". */
+function eighthLabel(v){
+  const n=Math.round(v/EIGHTH);
+  if(n<=0) return '0';
+  const whole=Math.floor(n/8);
+  let num=n%8, den=8;
+  if(!num) return String(whole);
+  while(num%2===0&&den%2===0){ num/=2; den/=2; }
+  return (whole?whole+' ':'')+num+'/'+den;
+}
+
+/* net === null draws the bare ruler with no marker: an empty state rather than
+   a reading of zero, which would be a wrong answer instead of an absent one. */
+const RX0=14, RX1=334, RY=22, RH=50, RBOT=RY+RH;
+function eRuler(net){
+  const empty=(net===null||net===undefined||isNaN(net));
+  const snapped=empty?0:snapEighth(net);
+  /* the ruler shows one inch; a reading past that (only reachable in extreme
+     heat with no rain) pins the marker at the end rather than running off it */
+  const mx=RX0+(RX1-RX0)*Math.min(1,Math.max(0,snapped));
+  let ticks='',nums='';
+  for(let i=0;i<=16;i++){
+    const x=RX0+(RX1-RX0)*(i/16);
+    /* standard ruler hierarchy — the coarser the division, the longer the mark */
+    const len=(i%16===0)?34:(i%8===0)?28:(i%4===0)?22:(i%2===0)?16:10;
+    ticks+=`<line class="rtick" x1="${x}" y1="${RY}" x2="${x}" y2="${RY+len}"/>`;
+    if(i%2===0) nums+=`<text class="rnum" x="${x}" y="${RBOT+22}">${eighthLabel(i/16)}</text>`;
+  }
+  const chipW=54, chipX=Math.min(RX1-chipW/2,Math.max(RX0+chipW/2,mx));
+  $('e-ruler').innerHTML=
+    `<title id="e-rt">${empty?'Ruler showing one inch, no reading yet'
+      :`Expected loss of ${eighthLabel(snapped)} inch in 24 hours, marked on a one-inch ruler`}</title>`
+   +`<rect class="rbody" x="${RX0}" y="${RY}" width="${RX1-RX0}" height="${RH}" rx="3"/>`
+   +(empty?'':`<rect class="rfill" x="${RX0}" y="${RY}" width="${mx-RX0}" height="${RH}"/>`)
+   +ticks+nums
+   +(empty?'':
+      `<line class="rmark" x1="${mx}" y1="${RY-8}" x2="${mx}" y2="${RBOT}"/>`
+     +`<rect class="rchip" x="${chipX-chipW/2}" y="0" width="${chipW}" height="20" rx="4"/>`
+     +`<text class="rchiptx" x="${chipX}" y="14.5">${eighthLabel(snapped)}"</text>`);
 }
 /* Every input named here is one the model actually consumes. The earlier wording
    claimed air temperature and humidity, neither of which the equation reads —
@@ -811,9 +867,10 @@ function eContext(m){
 }
 function eRecompute(){
   const m=eModel(); if(!m) return;
-  $('e-inches').textContent=n2(m.net);
+  $('e-inches').textContent=eighthLabel(snapEighth(m.net));
+  $('e-exact').textContent=`Exact figure ${n2(m.net)} in — the gallons below come from that, not the rounded fraction.`;
   $('e-gallons').innerHTML=`${Math.round(m.galDay)} <span>gallons/day at ${E.area.toLocaleString()} sq ft</span>`;
-  eGauge(m.net);
+  eRuler(m.net);
   $('e-context').textContent=eContext(m);
   const urgent=m.net>TYPICAL_HIGH;
   $('e-urgent').hidden=!urgent;
@@ -1057,7 +1114,7 @@ function refreshContactLink(){
   a.href=contactHref(); a.hidden=false;
 }
 refreshContactLink();
-eGauge(null);
+eRuler(null);
 refreshContactLink();
 initFeedback();
 initShare();
